@@ -23,7 +23,12 @@ app.use('/assets', express.static(path.join(__dirname, '../client/dist/assets'))
 
 app.post('/api/auth/login', async(req, res, next)=> {
   try {
-    res.send(await authenticate(req.body));
+    const {validUser, token} = await authenticate(req.body);
+    if(validUser){
+      res.send({token});
+    } else{
+      res.status(401).send({error: 'not authorized'});
+    }
   }
   catch(ex){
     next(ex);
