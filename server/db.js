@@ -75,19 +75,24 @@ const authenticate = async({ username, password })=> {
     const user = response.rows[0];
     const correctPassword = await bcrypt.compare(password, user.password);
     if(correctPassword){
-      //const token = jwt.sign({id:user.id},JWT_SECRET);
-      return {validUser: true, token: response.rows[0].id};
+      const token = jwt.sign({id:user.id},JWT_SECRET);
+      
+      return {validUser: true, token};
     }else{
       return {validUser: false}
     }
   }
 };
 
-const findUserWithToken = async(id)=> {
+const findUserWithToken = async(token)=> {
+  const decoded = jwt.verify(token,JWT_SECRET);
+  console.log(decoded);
   const SQL = `
-    SELECT id, username FROM users WHERE id=$1;
+    SELECT id, username 
+    FROM users 
+    WHERE id=$1;
   `;
-  const response = await client.query(SQL, [id]);
+  const response = await client.query(SQL, [decoded.id]);
   if(!response.rows.length){
     const error = Error('not authorized');
     error.status = 401;

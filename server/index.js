@@ -20,6 +20,21 @@ const path = require('path');
 app.get('/', (req, res)=> res.sendFile(path.join(__dirname, '../client/dist/index.html')));
 app.use('/assets', express.static(path.join(__dirname, '../client/dist/assets'))); 
 
+async function isLoggedIn(req,res,next){
+  try{
+const user = await findUserWithToken(req.headers.authorization);
+if(user){
+  req.user = user;
+  next();
+}else{
+  const error = Error('not authorized');
+  error.status = 401;
+  next(error)
+}
+  }catch(ex){
+    next(ex);
+  }
+}
 
 app.post('/api/auth/login', async(req, res, next)=> {
   try {
@@ -53,8 +68,13 @@ app.get('/api/users', async(req, res, next)=> {
   }
 });
 
-app.get('/api/users/:id/favorites', async(req, res, next)=> {
+app.get('/api/users/:id/favorites', isLoggedIn, async(req, res, next)=> {
   try {
+    if(req.user.id !== req.params.user_id){
+      const error = Error('not authorized');
+      error.status =401;
+      throw error;
+    }
     res.send(await fetchFavorites(req.params.id));
   }
   catch(ex){
@@ -71,8 +91,13 @@ app.post('/api/users/:id/favorites', async(req, res, next)=> {
   }
 });
 
-app.delete('/api/users/:user_id/favorites/:id', async(req, res, next)=> {
+app.delete('/api/users/:user_id/favorites/:id', isLoggedIn, async(req, res, next)=> {
   try {
+    if(req.user.id !== req.params.user_id){
+      const error = Error('not authorized');
+      error.status =401;
+      throw error;
+    }
     await destroyFavorite({user_id: req.params.user_id, id: req.params.id });
     res.sendStatus(204);
   }
